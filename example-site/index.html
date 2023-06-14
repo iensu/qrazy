@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <title>QRazy WASM demo</title>
+  </head>
+  <body>
+    <marquee>QRazy WASM demo!!</marquee>
+  </body>
+  <script type="module">
+   const createInstance = async (path, importObject = {}) => {
+     const { instance } = await WebAssembly.instantiateStreaming(fetch(path), importObject);
+     return instance;
+   };
+
+   const write = (string, buffer, pointer) => {
+     const view = new Uint8Array(buffer, pointer, 1024);
+     const encoder = new TextEncoder();
+
+     view.set(encoder.encode(string));
+   };
+
+   const read = (buffer, pointer) => {
+     const width = (new Uint32Array(buffer, pointer, 4))[0];
+     const view = new Uint8Array(buffer, pointer + 4, 1020);
+     const qrBits = view.subarray(0, width * width);
+     const qr = qrBits.reduce((result, x, index) => index % 25 === 0
+                                                 ? [[x], ...result]
+                                                 : [[...result[0], x], ...result.slice(1)],
+                              [])
+                      .reverse();
+     return qr;
+   };
+
+   (async () => {
+     const instance = await createInstance("qrazy_wasm.wasm", {
+       logger: {
+         info(x) {
+           console.log(x);
+         }
+       }
+     });
+     const memory = instance.exports.memory;
+     const pointer = instance.exports.alloc();
+
+     write("https://google.com", memory.buffer, pointer);
+     instance.exports.qrcode(pointer);
+
+     const qr = read(memory.buffer, pointer);
+
+     const qr_string = qr.map((row) => row.map(x => x === 1 ? "■" : " ").join("")).join("\n");
+
+     console.log(qr_string);
+
+     instance.exports.dealloc(pointer);
+    })();
+  </script>
+>
+</html>
