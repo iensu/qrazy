@@ -3,9 +3,32 @@
   <head>
     <meta charset="UTF-8"/>
     <title>QRazy WASM demo</title>
+    <style>
+     body {}
+
+     .content {
+       max-width: 800px;
+       margin: 32px auto;
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       gap: 32px;
+     }
+
+     canvas {
+       width: 300px;
+       height: 300px;
+     }
+    </style>
   </head>
   <body>
-    <marquee>QRazy WASM demo!!</marquee>
+    <div class="content">
+      <h1>QRazy WASM demo</h1>
+      <div class="inputs">
+        <input id="qr-input" type="text" placeholder="Type a URL" />
+        <button id="qr-button">Generate</button>
+      </div>
+      <canvas id="qr-canvas"></canvas>
   </body>
   <script type="module">
    const createInstance = async (path, importObject = {}) => {
@@ -23,13 +46,50 @@
    const read = (buffer, pointer) => {
      const width = (new Uint32Array(buffer, pointer, 4))[0];
      const view = new Uint8Array(buffer, pointer + 4, 1020);
-     const qrBits = view.subarray(0, width * width);
-     const qr = qrBits.reduce((result, x, index) => index % 25 === 0
-                                                 ? [[x], ...result]
-                                                 : [[...result[0], x], ...result.slice(1)],
-                              [])
-                      .reverse();
-     return qr;
+     const qrBits = Array.from(view.subarray(0, width * width));
+
+     return {
+       width,
+       qrBits,
+     };
+   };
+
+   const draw = (canvas, { width, qrBits }) => {
+     const size = 20;
+
+     canvas.width = width * size;
+     canvas.height = width * size;
+
+     const ctx = canvas.getContext("2d");
+     ctx.fillStyle = "black";
+
+     qrBits.forEach((bit, idx) => {
+       if (bit === 0) {
+         ctx.fillStyle = "white";
+       } else {
+         ctx.fillStyle = "black";
+       }
+
+       const x = (idx % width) * size;
+       const y = Math.floor(idx / width) * size;
+
+       ctx.fillRect(x, y, x + size, y + size);
+     });
+
+   };
+
+   const generateQrCode = (input) => {
+     const memory = QrazyInstance.exports.memory;
+     const pointer = QrazyInstance.exports.alloc();
+
+     write(input, memory.buffer, pointer);
+     QrazyInstance.exports.qrcode(pointer);
+
+     const qr = read(memory.buffer, pointer);
+
+     QrazyInstance.exports.dealloc(pointer);
+
+     return qr
    };
 
    (async () => {
@@ -40,20 +100,17 @@
          }
        }
      });
-     const memory = instance.exports.memory;
-     const pointer = instance.exports.alloc();
 
-     write("https://google.com", memory.buffer, pointer);
-     instance.exports.qrcode(pointer);
+     window.QrazyInstance = instance;
 
-     const qr = read(memory.buffer, pointer);
+     const input = document.getElementById("qr-input");
+     const button = document.getElementById("qr-button");
 
-     const qr_string = qr.map((row) => row.map(x => x === 1 ? "■" : " ").join("")).join("\n");
-
-     console.log(qr_string);
-
-     instance.exports.dealloc(pointer);
-    })();
+     button.onclick = () => {
+       const url = input.value;
+       const qr = generateQrCode(url);
+       draw(document.getElementById("qr-canvas"), qr);
+     };
+   })();
   </script>
->
 </html>

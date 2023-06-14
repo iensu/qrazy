@@ -16,6 +16,7 @@ mod logger {
     }
 }
 
+/// Allocate 1KB of memory.
 #[no_mangle]
 pub extern "C" fn alloc() -> *mut c_void {
     let mut buf = Vec::with_capacity(1024);
@@ -26,11 +27,13 @@ pub extern "C" fn alloc() -> *mut c_void {
     ptr
 }
 
+/// Deallocate 1KB of memory.
 #[no_mangle]
 pub unsafe extern "C" fn dealloc(ptr: *mut c_void) {
     let _ = Vec::from_raw_parts(ptr, 0, 1024);
 }
 
+/// Generate a QR code based on the string starting at `ptr`.
 #[no_mangle]
 pub unsafe extern "C" fn qrcode(ptr: *mut u8) {
     let input = CStr::from_ptr(ptr as *const i8).to_str().unwrap();

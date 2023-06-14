@@ -2,6 +2,7 @@ use qrcode::{Color, QrCode};
 
 #[derive(Debug)]
 pub enum QrError {
+    /// Failed to generate the QR code.
     GenerationFailed(String),
 }
 
@@ -15,12 +16,17 @@ impl std::fmt::Display for QrError {
 
 impl std::error::Error for QrError {}
 
+/// QR code data representation.
 pub struct QrData {
+    /// QR code represented as bits where `1` indicates dark and `0` indicates light.
     pub bits: Vec<u8>,
+    /// Width of the sides of the QR code.
     pub width: u32,
 }
 
 impl QrData {
+    /// Convert the `QrData` struct into a vector beginning with the `width`
+    /// in as `u32` in little-endian bytes followed by the vector of bits.
     pub fn to_vec(self) -> Vec<u8> {
         self.width
             .to_le_bytes()
@@ -30,6 +36,7 @@ impl QrData {
     }
 }
 
+/// Generate a QR code based on the `input` string.
 pub fn generate(input: &str) -> Result<QrData, QrError> {
     let code =
         QrCode::new(input.as_bytes()).map_err(|e| QrError::GenerationFailed(format!("{e}")))?;

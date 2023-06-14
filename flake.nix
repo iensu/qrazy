@@ -40,6 +40,7 @@
               binaryen     # Tools for optimizing wasm modules (wasm-* family of executables)
               wabt         # Tools for working with wasm text format (wasm2wat, wat2wasm, ...)
               wasmtime     # For running the wasm module through WASI (wasmtime --invoke <fn> file.wasm [...args])
+              python3
             ];
             RUST_SRC_PATH = rustPlatform.rustLibSrc;
             RUST_LOG = "debug";
