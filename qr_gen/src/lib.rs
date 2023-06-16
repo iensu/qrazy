@@ -27,12 +27,31 @@ pub struct QrData {
 impl QrData {
     /// Convert the `QrData` struct into a vector beginning with the `width`
     /// in as `u32` in little-endian bytes followed by the vector of bits.
+    #[must_use]
     pub fn to_vec(self) -> Vec<u8> {
         self.width
             .to_le_bytes()
             .into_iter()
             .chain(self.bits.into_iter())
             .collect()
+    }
+
+    /// Scale the `QrData` to the given `pixel_width`.
+    #[must_use]
+    pub fn scale(&self, pixel_width: usize) -> Self {
+        let width = self.width * pixel_width as u32;
+        let bits = self
+            .bits
+            .chunks(self.width as usize)
+            .map(|row| {
+                row.into_iter()
+                    .flat_map(|x| std::iter::repeat(*x).take(pixel_width))
+                    .collect::<Vec<_>>()
+            })
+            .map(|row| row.repeat(pixel_width))
+            .flatten()
+            .collect::<Vec<u8>>();
+        QrData { width, bits }
     }
 }
 

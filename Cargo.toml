@@ -1,5 +1,5 @@
 [workspace]
-members = ["qr_gen", "wasm"]
+members = ["cli", "qr_gen", "wasm"]
 
 # [profile.release]
 # # Optimize wasm bundle for size
