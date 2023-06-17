@@ -39,26 +39,31 @@ impl QrData {
     /// Scale the `QrData` to the given `pixel_width`.
     #[must_use]
     pub fn scale(&self, pixel_width: usize) -> Self {
+        #[allow(clippy::cast_possible_truncation)]
         let width = self.width * pixel_width as u32;
         let bits = self
             .bits
             .chunks(self.width as usize)
             .map(|row| {
-                row.into_iter()
+                row.iter()
                     .flat_map(|x| std::iter::repeat(*x).take(pixel_width))
                     .collect::<Vec<_>>()
             })
-            .map(|row| row.repeat(pixel_width))
-            .flatten()
+            .flat_map(|row| row.repeat(pixel_width))
             .collect::<Vec<u8>>();
-        QrData { width, bits }
+        QrData { bits, width }
     }
 }
 
 /// Generate a QR code based on the `input` string.
+///
+/// # Errors
+///
+/// Returns `QrError::GenerationFailed` if QR code generation fails.
 pub fn generate(input: &str) -> Result<QrData, QrError> {
     let code =
         QrCode::new(input.as_bytes()).map_err(|e| QrError::GenerationFailed(format!("{e}")))?;
+    #[allow(clippy::cast_possible_truncation)]
     let width = code.width() as u32;
     let bits = code
         .into_colors()

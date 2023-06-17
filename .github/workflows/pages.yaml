@@ -1,4 +1,4 @@
-name: Rust Docs
+name: Deploy pages site
 
 on:
   workflow_dispatch:
