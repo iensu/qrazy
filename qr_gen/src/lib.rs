@@ -3,13 +3,13 @@ use qrcode::{Color, QrCode};
 #[derive(Debug)]
 pub enum QrError {
     /// Failed to generate the QR code.
-    GenerationFailed(String),
+    GenerationFailed,
 }
 
 impl std::fmt::Display for QrError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            QrError::GenerationFailed(msg) => write!(f, "Failed to generate QR code: {msg}"),
+            QrError::GenerationFailed => write!(f, "Failed to generate QR code"),
         }
     }
 }
@@ -61,8 +61,7 @@ impl QrData {
 ///
 /// Returns `QrError::GenerationFailed` if QR code generation fails.
 pub fn generate(input: &str) -> Result<QrData, QrError> {
-    let code =
-        QrCode::new(input.as_bytes()).map_err(|e| QrError::GenerationFailed(format!("{e}")))?;
+    let code = QrCode::new(input.as_bytes()).map_err(|_| QrError::GenerationFailed)?;
     #[allow(clippy::cast_possible_truncation)]
     let width = code.width() as u32;
     let bits = code

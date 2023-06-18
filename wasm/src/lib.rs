@@ -44,10 +44,14 @@ pub unsafe extern "C" fn dealloc(ptr: *mut c_void, size: usize) {
 /// Reads data at `ptr` as a null terminated C string.
 #[no_mangle]
 pub unsafe extern "C" fn qrcode(ptr: *mut u8, size: usize) {
-    let input = CStr::from_ptr(ptr as *const i8)
-        .to_str()
-        .expect("can read pointer as string");
-    let qr = qr_gen::generate(input).expect("can generate a QR code from the provided string");
+    let input = match CStr::from_ptr(ptr as *const i8).to_str() {
+        Ok(s) => s,
+        Err(_) => std::process::abort(),
+    };
+    let qr = match qr_gen::generate(input) {
+        Ok(qr) => qr,
+        Err(_) => std::process::abort(),
+    };
 
     let header_bytes = std::slice::from_raw_parts_mut(ptr, size);
     let data = qr.to_vec();
