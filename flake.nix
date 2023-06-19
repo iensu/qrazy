@@ -12,7 +12,7 @@
     utils.lib.eachDefaultSystem (system:
       let
         cargoConfig = builtins.fromTOML(builtins.readFile(./Cargo.toml));
-        name = cargoConfig.package.name;
+        name = "qrazy";
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
         rustBinaries = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
@@ -20,19 +20,57 @@
           cargo = rustBinaries;
           rustc = rustBinaries;
         };
-        package = naersk-lib.buildPackage {
+
+        cliPackage = naersk-lib.buildPackage {
           src = ./.;
-          nativeBuildInputs = with pkgs; [ ];
+          cargoBuildOptions = x: x ++ [
+            "--package" "qrazy_cli"
+          ];
         };
+
+        wasmPackage = naersk-lib.buildPackage {
+          src = ./.;
+          cargoBuildOptions = x: x ++ [
+            "-p" "${name}_wasm"
+          ];
+          CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
+          copyLibs = true;
+          copyBins = false;
+          nativeBuildInputs = with pkgs; [ binaryen ];
+          postInstall = ''
+          wasm-opt -Oz -o $out/lib/${name}.wasm $out/lib/${name}_wasm.wasm
+          find $out/lib -type f ! -name "${name}.wasm" -delete
+          '';
+        };
+
+        sitePackage = pkgs.stdenv.mkDerivation rec {
+          name = "example-site";
+          src = ./.;
+          installPhase = ''
+          mkdir -p $out
+          cp example-site/* $out/
+          cp ${wasmPackage}/lib/* $out/
+          '';
+        };
+
+        siteServer = pkgs.writeScriptBin "serve" ''
+          ${pkgs.python3}/bin/python3 -m http.server --directory ${sitePackage}
+        '';
       in
         {
-          packages.${name} = package;
-          defaultPackage = self.packages.${system}.${name};
+          packages.${name} = cliPackage;
+          packages.wasm = wasmPackage;
+          packages.site = sitePackage;
 
-          apps.${name} = {
+          apps.cli = {
             type = "app";
-            program = "${package}/bin/${name}";
+            program = "${cliPackage}/bin/${name}";
           };
+          apps.site = {
+            type = "app";
+            program = "${siteServer}/bin/serve";
+          };
+          apps.default = self.apps.${system}.site;
 
           devShell = with pkgs; mkShell {
             buildInputs = [

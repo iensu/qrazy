@@ -16,28 +16,16 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install rust-toolchain.toml toolchain
-      run: rustup show
+    - uses: cachix/install-nix-action@v20
+      with:
+        github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Install Wasm binyaren
-      run: |
-        set -xe
-        wget -O binaryen.tar.gz https://github.com/WebAssembly/binaryen/releases/download/version_113/binaryen-version_113-x86_64-linux.tar.gz
-        tar -xvf binaryen.tar.gz
-        rm binaryen.tar.gz
-        mv binaryen-* binaryen
-
-    - run: cargo build --package qrazy_wasm --target wasm32-unknown-unknown --release
-
-    - name: Optimize Wasm binary and move it to example-site/
-      run: ./binaryen/bin/wasm-opt -Oz -o example-site/qrazy_wasm.wasm target/wasm32-unknown-unknown/release/qrazy_wasm.wasm
-
-    - name: Cleanup
-      run: rm -rf binaryen
+    - name: Build site
+      run: nix build .#site
 
     - name: Deploy GH Pages
       uses: JamesIves/github-pages-deploy-action@4.1.5
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         branch: gh-pages
-        folder: example-site
+        folder: result
