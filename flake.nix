@@ -24,22 +24,24 @@
         cliPackage = naersk-lib.buildPackage {
           src = ./.;
           cargoBuildOptions = x: x ++ [
-            "--package" "qrazy_cli"
+            "--package" "${name}_cli"
           ];
         };
 
         wasmPackage = naersk-lib.buildPackage {
           src = ./.;
           cargoBuildOptions = x: x ++ [
-            "-p" "${name}_wasm"
+            "--package" "${name}_wasm"
           ];
           CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
           copyLibs = true;
           copyBins = false;
           nativeBuildInputs = with pkgs; [ binaryen ];
           postInstall = ''
-          wasm-opt -Oz -o $out/lib/${name}.wasm $out/lib/${name}_wasm.wasm
-          find $out/lib -type f ! -name "${name}.wasm" -delete
+            # Optimize Wasm file size
+            wasm-opt -Oz -o $out/lib/${name}.wasm $out/lib/${name}_wasm.wasm
+            # Cleanup the lib directory
+            find $out/lib -type f ! -name "${name}.wasm" -delete
           '';
         };
 
@@ -47,9 +49,9 @@
           name = "example-site";
           src = ./.;
           installPhase = ''
-          mkdir -p $out
-          cp example-site/* $out/
-          cp ${wasmPackage}/lib/* $out/
+            mkdir -p $out
+            cp example-site/* $out/
+            cp ${wasmPackage}/lib/* $out/
           '';
         };
 
