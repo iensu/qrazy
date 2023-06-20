@@ -20,8 +20,15 @@ jobs:
       with:
         github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Restore Nix cache
+      id: nix-cache-restore
+      uses: actions/cache/restore@v3
+      with:
+        path: /home/runner/nix
+        key: ${{ runner.os }}-nix-cache
+
     - name: Build site
-      run: nix build .#site
+      run: nix --store /home/runner/nix build .#site
 
     - name: Deploy GH Pages
       uses: JamesIves/github-pages-deploy-action@v4.4.2
@@ -29,3 +36,10 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         branch: gh-pages
         folder: result
+
+    - name: Cache Nix
+      id: nix--cache-save
+      uses: actions/cache/save@v3
+      with:
+        path: /home/runner/nix
+        key: ${{ steps.nix-cache-restore.outputs.cache-primary-key }}
