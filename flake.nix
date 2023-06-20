@@ -54,27 +54,31 @@
             cp ${wasmPackage}/lib/* $out/
           '';
         };
-
         siteServer = pkgs.writeScriptBin "serve" ''
           ${pkgs.python3}/bin/python3 -m http.server --directory ${sitePackage}
         '';
       in
         {
-          packages.${name} = cliPackage;
+          checks.check = naersk-lib.buildPackage {
+            src = ./.;
+            doCheck = true;
+            checkPhase = ''
+              cargo fmt --check
+              cargo clippy -- -D warnings --warn clippy::pedantic
+              cargo test --workspace
+            '';
+          };
+
+          packages.cli = cliPackage;
           packages.wasm = wasmPackage;
           packages.site = sitePackage;
+          packages.default = self.packages.${system}.cli;
 
-          apps.cli = {
-            type = "app";
-            program = "${cliPackage}/bin/${name}";
-          };
-          apps.site = {
-            type = "app";
-            program = "${siteServer}/bin/serve";
-          };
+          apps.cli = { type = "app"; program = "${cliPackage}/bin/${name}"; };
+          apps.site = { type = "app"; program = "${siteServer}/bin/serve"; };
           apps.default = self.apps.${system}.site;
 
-          devShell = with pkgs; mkShell {
+          devShells.default = with pkgs; mkShell {
             buildInputs = [
               rustBinaries # Rust-related binaries (rustc, cargo, clippy, ...)
               binaryen     # Tools for optimizing wasm modules (wasm-* family of executables)

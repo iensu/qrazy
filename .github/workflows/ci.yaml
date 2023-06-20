@@ -17,31 +17,22 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install rust-toolchain.toml toolchain
-      run: rustup show
+    - uses: cachix/install-nix-action@v20
+      with:
+        github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Restore .cargo and target directories
-      id: cargo-target-cache-restore
+    - name: Restore Nix cache
+      id: nix-cache-restore
       uses: actions/cache/restore@v3
       with:
-        path: |
-          target
-          /home/runner/.cargo
-        key: ${{ runner.os }}-cargo-target-cache
+        path: /home/runner/nix
+        key: ${{ runner.os }}-nix-cache
 
-    - run: cargo fmt -- --check
+    - run: nix --store /home/runner/nix flake check --print-build-logs
 
-    - run: cargo clippy -- -W clippy::pedantic -D warnings
-
-    - run: cargo test --workspace
-
-    - run: cargo build --package qrazy_wasm --target wasm32-unknown-unknown
-
-    - name: Cache .cargo and target directories
-      id: cargo-target-cache-save
+    - name: Cache Nix
+      id: nix--cache-save
       uses: actions/cache/save@v3
       with:
-        path: |
-          target
-          /home/runner/.cargo
-        key: ${{ steps.cargo-target-cache-restore.outputs.cache-primary-key }}
+        path: /home/runner/nix
+        key: ${{ steps.nix-cache-restore.outputs.cache-primary-key }}
