@@ -28,7 +28,11 @@ jobs:
         key: ${{ runner.os }}-nix-cache
 
     - name: Build site
-      run: nix --store /home/runner/nix build .#site
+      run: |
+        nix --store /home/runner/nix build .#site
+        # https://github.com/NixOS/nix/issues/2264
+        mv result broken-result-link
+        ln -s "/home/runner/nix$(readlink broken-result-link)" result
 
     - name: Deploy GH Pages
       uses: JamesIves/github-pages-deploy-action@v4.4.2
