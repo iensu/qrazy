@@ -21,11 +21,11 @@ jobs:
         github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Restore Nix cache
-      id: nix-cache-restore
+      id: nix-site-cache-restore
       uses: actions/cache/restore@v3
       with:
         path: /home/runner/nix
-        key: ${{ runner.os }}-nix-cache
+        key: ${{ runner.os }}-nix-site-cache
 
     - name: Build site
       run: |
@@ -42,8 +42,8 @@ jobs:
         folder: result
 
     - name: Cache Nix
-      id: nix--cache-save
+      id: nix-site-cache-save
       uses: actions/cache/save@v3
       with:
         path: /home/runner/nix
-        key: ${{ steps.nix-cache-restore.outputs.cache-primary-key }}
+        key: ${{ steps.nix-site-cache-restore.outputs.cache-primary-key }}
